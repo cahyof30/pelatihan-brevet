@@ -1,0 +1,353 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Instructor extends CI_Controller
+{
+
+    public function __construct()
+    {
+        parent::__construct();
+        is_logged_in();
+    }
+
+
+    public function index()
+    {
+        $data['title'] = 'Unggah Materi';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['course'] = $this->Instructor_model->getCourse();
+        $data['materi'] = $this->Instructor_model->joinDisplayMateri();
+        $this->load->view('templates/v_header', $data);
+        $this->load->view('templates/v_sidebar', $data);
+        $this->load->view('templates/v_topbar', $data);
+        $this->load->view('instructor/index', $data);
+        $this->load->view('templates/v_footer');
+    }
+
+    public function tambahMateri()
+    {
+        $data['materi'] = $this->Instructor_model->tampil_materi()->result();
+
+        $course_id      = $this->input->post('course_id');
+        $title          = $this->input->post('title');
+        $link            = $this->input->post('link');
+        $time            = $this->input->post('time');
+        $modul          = $_FILES['modul'];
+        $new_name       = time() . $_FILES["modul"]['name'];
+
+        if ($modul) {
+            $config['allowed_types']    = 'pdf';
+            $config['max_size']         = '10248';
+            $config['upload_path']      = './modul';
+            $config['file_name']        = $new_name;
+            $this->load->library('upload', $config);
+            if ($this->upload->do_upload('modul')) {
+                $modul = $this->upload->data('file_name');
+            } else {
+                echo "Upload Modul Gagal!";
+                die();
+            }
+        }
+
+        $data = array(
+            'course_id' => $course_id,
+            'title'     => $title,
+            'link'       => $link,
+            'time'       => $time,
+            'modul'     => $modul
+
+        );
+        $this->db->insert('user_material', $data);
+        redirect('instructor');
+    }
+
+    public function deleteCourse($id)
+    {
+        $where = array('id' => $id);
+        $this->Instructor_model->deleteMaterial($where, 'user_material');
+        redirect('instructor');
+    }
+
+    public function editMateri()
+    {
+        $data['title'] = 'Edit Materi';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['materi'] = $this->Instructor_model->getCourseWhere(['id' => $this->uri->segment(3)])->result_array();
+        $course = $this->Instructor_model->joinCourse(['user_material.id' => $this->uri->segment(3)])->result_array();
+
+        foreach ($course as $crs) {
+            $data['id'] = $crs['course_id'];
+            $data['crs'] = $crs['course'];
+        }
+
+        $this->form_validation->set_rules('course_id', 'Jenis Pelatihan', 'required', ['required' => 'Jenis Pelatihan harus diisi']);
+        $this->form_validation->set_rules('title', 'Judul Materi', 'required|min_length[3]', ['required' => 'Judul Materi harus diisi', 'min_length' => 'Judul Materi terlalu pendek']);
+        $this->form_validation->set_rules('link', 'Link Pelatihan', 'required|min_length[3]', ['required' => 'Link Pelatihan harus diisi', 'min_length' => 'Link Pelatihan terlalu pendek']);
+
+        //konfigurasi sebelum gambar diupload
+        $config['upload_path']    = './modul/';
+        $config['allowed_types']  = 'pdf';
+        $config['max_size']       = '10248';
+        $config['file_name']      = 'modul' . time();
+
+        //memuat atau memanggil library upload
+        $this->load->library('upload', $config);
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/edit', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+            if ($this->upload->do_upload('modul')) {
+                $modul = $this->upload->data();
+                unlink('modul/' . $this->input->post('old_mod', TRUE));
+                $modul2 = $modul['file_name'];
+            } else {
+                $modul2 = $this->input->post('old_mod', TRUE);
+            }
+
+            $data = [
+                'course_id' => $this->input->post('course_id', true),
+                'title' => $this->input->post('title', true),
+                'link' => $this->input->post('link', true),
+                'modul' => $modul2
+            ];
+            $this->Instructor_model->updateMateri($data, ['id' => $this->input->post('id')]);
+            redirect('instructor');
+        }
+    }
+
+    public function exam()
+    {
+        $data['title'] = 'Unggah Soal Ujian';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['exam'] = $this->Instructor_model->joinExam()->result_array();
+
+
+        $this->form_validation->set_rules('course_id', 'Jenis Pelatihan', 'required', ['required' => 'Jenis Pelatihan harus diisi!']);
+        $this->form_validation->set_rules('exam_tp', "Jenis Ujian", 'required', ['required' => 'Jenis Ujian harus diisi']);
+        $this->form_validation->set_rules('deadline', 'Deadline', 'required', ['required' => 'Deadline harus diisi']);
+
+        //konfigurasi sebelum gambar diupload
+        $config['upload_path'] = './exam/task/';
+        $config['allowed_types'] = 'pdf|rar|zip';
+        $config['max_size'] = '10248';
+        $config['file_name'] = 'task' . time();
+
+        $this->load->library('upload', $config);
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/exam', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+            if ($this->upload->do_upload('exam_file')) {
+                $exam_file = $this->upload->data();
+                $task = $exam_file['file_name'];
+            } else {
+                $task = '';
+            }
+
+            $data = [
+                'course_id' => $this->input->post('course_id', true),
+                'exam_tp'   => $this->input->post('exam_tp', true),
+                'deadline'  => $this->input->post('deadline', true),
+                'exam_file' => $task
+
+            ];
+            $this->Instructor_model->simpanExam($data);
+            redirect('instructor/exam');
+        }
+    }
+
+    public function editExam()
+    {
+        $data['title'] = 'Edit Ujian';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['exam'] = $this->Instructor_model->getExamWhere(['id' => $this->uri->segment(3)])->result_array();
+        $examtype = $this->Instructor_model->joinExamType(['user_exam.id' => $this->uri->segment(3)])->result_array();
+        $course = $this->Instructor_model->joinExamCourse(['user_exam.id' => $this->uri->segment(3)])->result_array();
+
+        foreach ($course as $crs) {
+            $data['id'] = $crs['course_id'];
+            $data['crs'] = $crs['course'];
+        }
+
+        foreach ($examtype as $ext) {
+            $data['id'] = $ext['exam_tp'];
+            $data['ext'] = $ext['exam_name'];
+        }
+
+        $data['examtype'] = $this->Instructor_model->getExamType()->result_array();
+        $data['course'] = $this->Instructor_model->getCourse()->result_array();
+
+
+        $this->form_validation->set_rules('course_id', 'Jenis Pelatihan', 'required', ['required' => 'Jenis Pelatihan harus diisi!']);
+        $this->form_validation->set_rules('exam_tp', "Jenis Ujian", 'required', ['required' => 'Jenis Ujian harus diisi']);
+        $this->form_validation->set_rules('deadline', 'Deadline', 'required', ['required' => 'Deadline harus diisi']);
+
+        //konfigurasi sebelum gambar diupload
+        $config['allowed_types']    = 'pdf|rar|zip';
+        $config['max_size']         = '10248';
+        $config['upload_path']      = './exam/task/';
+        $config['file_name']        = 'task' . time();
+
+        //memuat atau memanggil library upload
+        $this->load->library('upload', $config);
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/editExam', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+            if ($this->upload->do_upload('exam_file')) {
+                $exam_file = $this->upload->data();
+                unlink('./exam/task/' . $this->input->post('old_task', TRUE));
+                $task = $exam_file['file_name'];
+            } else {
+                $task = $this->input->post('old_task', TRUE);
+            }
+
+            $data = [
+                'course_id' => $this->input->post('course_id', true),
+                'exam_tp'   => $this->input->post('exam_tp', true),
+                'deadline'  => $this->input->post('deadline', true),
+                'exam_file' => $task
+
+            ];
+            $this->Instructor_model->updateExam($data, ['id' => $this->input->post('id')]);
+            redirect('instructor/exam');
+        }
+    }
+
+    public function deleteExam($id)
+    {
+        $where = array('id' => $id);
+        $this->Instructor_model->deleteExam($where, 'user_exam');
+        redirect('instructor/exam');
+    }
+
+    public function examScore()
+    {
+        $data['title'] = 'Unggah Nilai Ujian';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['score'] = $this->Instructor_model->displayExamScore()->result_array();
+
+
+        $this->form_validation->set_rules('user_id', 'User ID', 'required', ['required' => 'User ID harus diisi']);
+        $this->form_validation->set_rules('name', "Nama Peserta", 'required', ['required' => 'Nama Peserta Harus Diisi']);
+
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/examscore', $data);
+            $this->load->view('templates/v_footer');
+        }
+    }
+    public function deleteExamScore($id)
+    {
+        $where = array('user_id' => $id);
+        $this->Instructor_model->deleteExamScore($where, 'user_exam_score');
+        redirect('instructor/examscore');
+    }
+    public function syncExamScore()
+    {
+        // tambah data yang belum ada dari tabel user ke tabel user_exam_score
+        $this->db->query(
+            "INSERT IGNORE INTO user_exam_score (user_id, name) 
+        SELECT id, name 
+        FROM user 
+        WHERE role_id=2 AND verified=1
+        AND NOT EXISTS 
+        (SELECT * FROM user_exam_score 
+         WHERE user_exam_score.user_id = user.id 
+         AND user_exam_score.name = user.name);"
+        );
+
+        // hapus data dari tabel user_exam_score yang tidak ada di tabel user
+        $this->db->query('DELETE FROM user_exam_score WHERE user_id NOT IN (SELECT id FROM user);');
+        $this->session->set_flashdata('success_message', 'Data berhasil disinkronkan.');
+        redirect('instructor/examScore');
+    }
+    public function editExamScore()
+    {
+        $data['title'] = 'Edit Nilai Ujian';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['score'] = $this->Instructor_model->getExamScoreWhere(['user_id' => $this->uri->segment(3)])->result_array();
+        $status = $this->Instructor_model->displayExamScore(['user_exam_score.user_id' => $this->uri->segment(3)])->result_array();
+
+        // $data['status'] = $this->Instructor_model->getStatus()->result_array();
+
+
+        $this->form_validation->set_rules('user_id', 'User ID', 'required', ['required' => 'User ID harus diisi']);
+        $this->form_validation->set_rules('name', "Nama Peserta", 'required', ['required' => 'Nama Peserta Harus Diisi']);
+
+        $mid_score = $this->input->post('mid_score', true);
+        $final_score = $this->input->post('final_score', true);
+
+        if ($mid_score >= 50 && $final_score >= 50) {
+            $statusID = 1;
+        } else {
+            $statusID = 0;
+        }
+
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/editExamScore', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+            $data = [
+                'user_id' => $this->input->post('user_id', true),
+                'name'   => $this->input->post('name', true),
+                'mid_score'  => $mid_score,
+                'final_score'  => $final_score,
+                'status_id' => $statusID
+            ];
+
+            $data2 = [
+                'status_id' => $statusID
+            ];
+            $this->Instructor_model->updateExamScore($data, ['user_id' => $this->input->post('user_id')]);
+            $this->Instructor_model->updateRole($data2, ['name' => $this->input->post('name')]);
+            redirect('instructor/examScore');
+        }
+    }
+    public function examResult()
+    {
+        $data['title'] = 'Jawaban Ujian';
+        $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
+        $data['result'] = $this->Instructor_model->getExamResult()->result_array();
+        $this->form_validation->set_rules('user_id', 'User ID', 'required', ['required' => 'User ID harus diisi']);
+        $this->form_validation->set_rules('name', "Nama Peserta", 'required', ['required' => 'Nama Peserta Harus Diisi']);
+
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/examresult', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+        }
+    }
+
+    public function wipeAllData()
+    {
+        $this->db->query(
+            "TRUNCATE TABLE user_exam_upload;"
+        );
+        $this->session->set_flashdata('success_message', 'Data berhasil dibersihkan.');
+        redirect('instructor/examresult');
+    }
+}
