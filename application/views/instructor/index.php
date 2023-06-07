@@ -51,7 +51,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open_multipart('instructor/tambahMateri'); ?>
+                <?= form_open_multipart('instructor'); ?>
                 <div class="modal-body">
                     <div class="form-group">
                         <select name="course_id" id="course_id" class="form-control">
@@ -65,7 +65,7 @@
                         <input type="text" class="form-control" id="link" name="link" placeholder="URL to Meeting">
                     </div>
                     <div class="form-group">
-                        <input type="file" class="form-control" id="modul" name="modul" value="<?= set_value('modul'); ?>" required>
+                        <input type="file" class="form-control" id="modul" name="modul" required>
                     </div>
                     <div class="form-group">
                         <input type="datetime-local" class="form-control" id="time" name="time">

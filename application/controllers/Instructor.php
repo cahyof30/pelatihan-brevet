@@ -17,48 +17,56 @@ class Instructor extends CI_Controller
         $data['user'] = $this->db->get_where('user', ['email' => $this->session->userdata('email')])->row_array();
         $data['course'] = $this->Instructor_model->getCourse();
         $data['materi'] = $this->Instructor_model->joinDisplayMateri();
-        $this->load->view('templates/v_header', $data);
-        $this->load->view('templates/v_sidebar', $data);
-        $this->load->view('templates/v_topbar', $data);
-        $this->load->view('instructor/index', $data);
-        $this->load->view('templates/v_footer');
+        $data['material'] = $this->Instructor_model->tampil_materi()->result_array();
+
+        $this->form_validation->set_rules('course_id', 'Course ID', 'required', ['required' => 'Course ID harus diisi!']);
+        $this->form_validation->set_rules('title', 'Title', 'required', ['required' => 'Judul Pelatihan harus diisi!']);
+        $this->form_validation->set_rules('link', 'Link Pelatihan', 'required|callback_validate_link', ['required' => 'Link Pelatihan harus diisi!']);
+        $this->form_validation->set_rules('time', 'Waktu', 'required', ['required' => 'Waktu Pelatihan harus diisi!']);
+        $this->form_validation->set_message('validate_link', 'Format link tidak valid. Pastikan anda menggunakan http:// atau https://');
+
+        $config['allowed_types']    = 'pdf';
+        $config['max_size']         = '10248';
+        $config['upload_path']      = './modul';
+        $config['file_name']        = 'Modul' . time();
+        $this->load->library('upload', $config);
+
+        if ($this->form_validation->run() == false) {
+            $this->load->view('templates/v_header', $data);
+            $this->load->view('templates/v_sidebar', $data);
+            $this->load->view('templates/v_topbar', $data);
+            $this->load->view('instructor/index', $data);
+            $this->load->view('templates/v_footer');
+        } else {
+            if ($this->upload->do_upload('modul')) {
+                $modul = $this->upload->data();
+                $new_modul = $modul['file_name'];
+            } else {
+                $new_modul = '';
+            }
+
+            $data = [
+                'course_id' => $this->input->post('course_id', true),
+                'title'     => $this->input->post('title', true),
+                'link'       => $this->input->post('link', true),
+                'time'       => $this->input->post('time', true),
+                'modul'     => $new_modul
+            ];
+            $this->Instructor_model->simpanMateri($data);
+            redirect('instructor');
+        }
     }
 
-    public function tambahMateri()
+
+    public function validate_link($link)
     {
-        $data['materi'] = $this->Instructor_model->tampil_materi()->result();
-
-        $course_id      = $this->input->post('course_id');
-        $title          = $this->input->post('title');
-        $link            = $this->input->post('link');
-        $time            = $this->input->post('time');
-        $modul          = $_FILES['modul'];
-        $new_name       = time() . $_FILES["modul"]['name'];
-
-        if ($modul) {
-            $config['allowed_types']    = 'pdf';
-            $config['max_size']         = '10248';
-            $config['upload_path']      = './modul';
-            $config['file_name']        = $new_name;
-            $this->load->library('upload', $config);
-            if ($this->upload->do_upload('modul')) {
-                $modul = $this->upload->data('file_name');
-            } else {
-                echo "Upload Modul Gagal!";
-                die();
-            }
+        // Memeriksa apakah link dimulai dengan http:// atau https://
+        if (preg_match('/^(http:\/\/|https:\/\/)/', $link)) {
+            return TRUE;
+        } else {
+            $this->form_validation->set_message('validate_link', 'Format link tidak valid.');
+            return FALSE;
         }
-
-        $data = array(
-            'course_id' => $course_id,
-            'title'     => $title,
-            'link'       => $link,
-            'time'       => $time,
-            'modul'     => $modul
-
-        );
-        $this->db->insert('user_material', $data);
-        redirect('instructor');
     }
 
     public function deleteCourse($id)

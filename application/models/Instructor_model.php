@@ -123,6 +123,10 @@ class Instructor_model extends CI_Model
     {
         $this->db->insert('user_exam', $data);
     }
+    public function simpanMateri($data = null)
+    {
+        $this->db->insert('user_material', $data);
+    }
     public function simpanExamScore($data = null)
     {
         $this->db->insert('user', $data);
