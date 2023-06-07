@@ -72,21 +72,21 @@ class User extends CI_Controller
             if ($this->upload->do_upload('image')) {
                 $img = $this->upload->data();
                 $new_img = $img['file_name'];
-                if ($this->input->post('old_img', TRUE) != 'default.jpg'){
-                unlink('assets/images/profile/' . $this->input->post('old_img', TRUE));
-            }
-                 } else {
-                $new_img = $this->input->post('old_img', TRUE);
+                if ($this->input->post('old_img', TRUE) != 'default.jpg') {
+                    unlink('assets/images/profile/' . $this->input->post('old_img', TRUE));
                 }
-                
-            $data = 
-            [
-                'name' => $name,
-                'image' => $new_img,
-                'no_hp' => $no_hp,
-                'pendidikan' => $pendidikan,
-                'domisili' => $domisili
-            ];
+            } else {
+                $new_img = $this->input->post('old_img', TRUE);
+            }
+
+            $data =
+                [
+                    'name' => $name,
+                    'image' => $new_img,
+                    'no_hp' => $no_hp,
+                    'pendidikan' => $pendidikan,
+                    'domisili' => $domisili
+                ];
 
             // $this->db->set('name', $name);
             // $this->db->where('email', $email);
@@ -211,19 +211,20 @@ class User extends CI_Controller
             $this->load->view('templates/v_footer');
         } else {
             if ($this->upload->do_upload('buktibayar')) {
-                    $bukti = $this->upload->data();
-                    $new_bb = $bukti['file_name'];
-                    if ($this->input->post('old_bb', TRUE) != 'nodata.png'){
-                    unlink('assets/images/bukti_bayar/' . $this->input->post('old_bb', TRUE));}
-                } else {
-                    $new_bb = $this->input->post('old_bb', TRUE);
+                $bukti = $this->upload->data();
+                $new_bb = $bukti['file_name'];
+                if ($this->input->post('old_bb', TRUE) != 'nodata.png') {
+                    unlink('assets/images/bukti_bayar/' . $this->input->post('old_bb', TRUE));
                 }
-            
-                $data =[
-                    'name' => $name,
-                    'email' => $email,
-                    'buktibayar' => $new_bb
-                ];
+            } else {
+                $new_bb = $this->input->post('old_bb', TRUE);
+            }
+
+            $data = [
+                'name' => $name,
+                'email' => $email,
+                'buktibayar' => $new_bb
+            ];
 
             // $this->db->set('name', $name);
             // $this->db->where('email', $email);
@@ -308,7 +309,7 @@ class User extends CI_Controller
         } else {
             if ($this->upload->do_upload('finalexam_file')) {
                 $final = $this->upload->data();
-                    unlink('./exam/answer/' . $this->input->post('old_ans', TRUE));
+                unlink('./exam/answer/' . $this->input->post('old_ans', TRUE));
                 $finalexam = $final['file_name'];
             } else {
                 $finalexam = $this->input->post('old_ans', TRUE);
@@ -388,5 +389,4 @@ class User extends CI_Controller
             $this->load->view('templates/v_footer');
         }
     }
-
 }
