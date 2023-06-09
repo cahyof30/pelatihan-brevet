@@ -1,5 +1,5 @@
 <!-- Sidebar -->
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+<ul class="navbar-nav bg-sidebar sidebar sidebar-dark accordion" id="accordionSidebar">
 
     <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
@@ -9,6 +9,10 @@
             <style>
                 .img-top-logo {
                     width: 85%;
+                }
+
+                .bg-sidebar {
+                    background-image: linear-gradient(75deg, #EF3C6A, #E71F41);
                 }
             </style>
         </div>
